@@ -106,6 +106,8 @@ function emailBody(params: {
           <tr><td style="padding:36px 32px">
             <h1 style="margin:0 0 16px;font-size:28px;line-height:1.2;color:#182033">${firstName}, you’re registered.</h1>
             <p style="margin:0 0 24px;color:#5d6472;font-size:16px;line-height:1.6">Your seat is confirmed for Ricky Rose’s live online training.</p>
+            <p style="margin:0 0 18px;color:#343b4a;font-size:16px;line-height:1.7">This is the email address we’ll use for your Zoom link, reminders, and important training updates.</p>
+            <p style="margin:0 0 24px;color:#343b4a;font-size:16px;line-height:1.7">To make sure we land in your inbox, hit reply and send: <strong>I’M IN</strong>.</p>
             <div style="margin:0 0 24px;padding:20px;border:1px solid #cde2f7;border-radius:12px;background:#f3f9ff">
               <p style="margin:0;color:#0f5f9e;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase">Your live training</p>
               <p style="margin:8px 0 0;color:#182033;font-size:22px;font-weight:700">${webinarName}</p>
@@ -126,6 +128,10 @@ function emailBody(params: {
     `Hi ${params.firstName.trim() || "there"},`,
     "",
     "You’re registered for Ricky Rose’s live online training.",
+    "",
+    "This is the email address we’ll use for your Zoom link, reminders, and important training updates.",
+    "",
+    "To make sure we land in your inbox, hit reply and send: I’M IN.",
     "",
     params.webinarName,
     `${sessionDateLabel(params.sessionDate)} at ${params.sessionTime ?? "7:00 PM"} ${params.timezone === "America/Chicago" ? "Central Time" : (params.timezone ?? "Central Time")}`,
