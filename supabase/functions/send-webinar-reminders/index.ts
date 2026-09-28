@@ -13,6 +13,8 @@ type Registration = {
   id: string;
   first_name: string | null;
   email: string | null;
+  phone: string | null;
+  sms_opt_in: boolean | null;
   webinar_name: string | null;
   session_date: string | null;
   session_time: string | null;
@@ -36,6 +38,14 @@ type EmailMessage = {
 const CHICAGO_TIMEZONE = "America/Chicago";
 const SETTINGS_KEY = "webinar_reminder_cron_token_sha256";
 const PROCESSING_WINDOW_MINUTES = 10;
+const SMS_REMINDER_KEYS = new Set<ReminderKey>([
+  "tomorrow",
+  "today",
+  "one_hour",
+  "ten_minutes",
+  "live_now",
+  "replay_followup",
+]);
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>'"]/g, (character) => {
@@ -264,6 +274,42 @@ function messageFor(
   }
 }
 
+function normalizeUsPhone(value: string | null) {
+  const digits = (value ?? "").replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  return null;
+}
+
+function smsMessageFor(
+  key: ReminderKey,
+  registration: Registration,
+  joinUrl: string,
+  replayUrl: string | null,
+) {
+  const firstName = registration.first_name?.trim() || "there";
+  const webinarName = registration.webinar_name ?? "Build Your First AI Income Stream";
+
+  switch (key) {
+    case "tomorrow":
+      return `Hi ${firstName}, reminder: ${webinarName} is tomorrow at 7 PM Central. Plan to join 5–10 min early: ${joinUrl} Reply STOP to opt out.`;
+    case "today":
+      return `Hi ${firstName}, tonight at 7 PM Central: ${webinarName}. Bring one income idea or problem to work on. Join: ${joinUrl} Reply STOP to opt out.`;
+    case "one_hour":
+      return `Hi ${firstName}, we start in 1 hour. Open Zoom and join 5–10 min early: ${joinUrl} Reply STOP to opt out.`;
+    case "ten_minutes":
+      return `Hi ${firstName}, we start in 10 min. Join Zoom now: ${joinUrl} Reply STOP to opt out.`;
+    case "live_now":
+      return `Hi ${firstName}, we’re live now—join ${webinarName}: ${joinUrl} Reply STOP to opt out.`;
+    case "replay_followup":
+      return replayUrl
+        ? `Hi ${firstName}, thanks for registering for ${webinarName}. Watch the replay here: ${replayUrl} Reply STOP to opt out.`
+        : null;
+    default:
+      return null;
+  }
+}
+
 function footerHtml() {
   const mailingAddress = Deno.env.get("BUSINESS_MAILING_ADDRESS")?.trim();
   const privacyUrl = safeHttpsUrl(Deno.env.get("PRIVACY_POLICY_URL"));
@@ -378,6 +424,13 @@ Deno.serve(async (request) => {
   const resendFromEmail = Deno.env.get("RESEND_FROM_EMAIL");
   const webinarJoinUrl = safeHttpsUrl(Deno.env.get("WEBINAR_JOIN_URL"));
   const webinarReplayUrl = safeHttpsUrl(Deno.env.get("WEBINAR_REPLAY_URL"));
+  const retellApiKey = Deno.env.get("RETELL_API_KEY");
+  const retellFromNumber = normalizeUsPhone(Deno.env.get("RETELL_FROM_NUMBER") ?? null);
+  const retellAgentId = Deno.env.get("RETELL_SMS_AGENT_ID")?.trim();
+  const registrationUrl =
+    safeHttpsUrl(Deno.env.get("WEBINAR_REGISTRATION_URL")) ??
+    "https://screenshot-magic-7938.lovable.app/";
+  const smsConfigured = Boolean(retellApiKey && retellFromNumber && retellAgentId);
   if (!resendApiKey || !resendFromEmail || !webinarJoinUrl) {
     console.error("Reminder function is missing email delivery configuration.");
     return Response.json(
@@ -400,7 +453,9 @@ Deno.serve(async (request) => {
   const rangeEnd = shiftIsoDate(localToday, 7);
   const { data: registrations, error: registrationsError } = await supabase
     .from("webinar_registrations")
-    .select("id, first_name, email, webinar_name, session_date, session_time, timezone, created_at")
+    .select(
+      "id, first_name, email, phone, sms_opt_in, webinar_name, session_date, session_time, timezone, created_at",
+    )
     .eq("registration_status", "registered")
     .gte("session_date", rangeStart)
     .lte("session_date", rangeEnd)
@@ -423,6 +478,10 @@ Deno.serve(async (request) => {
     alreadyHandled: 0,
     skipped: 0,
     failed: 0,
+    smsSent: 0,
+    smsAlreadyHandled: 0,
+    smsSkipped: 0,
+    smsFailed: 0,
   };
 
   for (const registration of (registrations ?? []) as Registration[]) {
@@ -449,6 +508,91 @@ Deno.serve(async (request) => {
         scheduledFor: slot.scheduledFor.toISOString(),
       });
       if (dryRun) continue;
+
+      if (SMS_REMINDER_KEYS.has(slot.key)) {
+        const recipientPhone = normalizeUsPhone(registration.phone);
+        const smsMessage = smsMessageFor(slot.key, registration, webinarJoinUrl, webinarReplayUrl);
+
+        if (registration.sms_opt_in !== true || !recipientPhone || !smsMessage || !smsConfigured) {
+          result.smsSkipped += 1;
+        } else {
+          const { data: smsClaimStatus, error: smsClaimError } = await supabase.rpc(
+            "claim_webinar_sms_delivery",
+            {
+              p_registration_id: registration.id,
+              p_message_key: slot.key,
+              p_scheduled_for: slot.scheduledFor.toISOString(),
+            },
+          );
+
+          if (smsClaimError || !smsClaimStatus) {
+            console.error("Could not claim webinar SMS reminder delivery.", smsClaimError);
+            result.smsFailed += 1;
+          } else if (smsClaimStatus !== "claimed") {
+            result.smsAlreadyHandled += 1;
+          } else {
+            const retellResponse = await fetch("https://api.retellai.com/create-sms-chat", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${retellApiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                from_number: retellFromNumber,
+                to_number: recipientPhone,
+                override_agent_id: retellAgentId,
+                override_agent_version: "latest_published",
+                metadata: {
+                  source: "ai_income_webinar",
+                  registration_id: registration.id,
+                  message_key: slot.key,
+                },
+                retell_llm_dynamic_variables: {
+                  scheduled_message: smsMessage,
+                  recipient_first_name: registration.first_name?.trim() || "there",
+                  session_date: sessionDateLabel(registration.session_date),
+                  session_time: friendlyTime(registration),
+                  join_url: webinarJoinUrl,
+                  registration_url: registrationUrl,
+                },
+              }),
+            });
+            const retellPayload = (await retellResponse.json().catch(() => null)) as {
+              chat_id?: unknown;
+            } | null;
+
+            if (!retellResponse.ok || typeof retellPayload?.chat_id !== "string") {
+              console.error("Retell rejected a webinar SMS reminder.", {
+                key: slot.key,
+                status: retellResponse.status,
+              });
+              await supabase
+                .from("webinar_sms_deliveries")
+                .update({
+                  status: "failed",
+                  failure_reason: `Retell returned HTTP ${retellResponse.status}`,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("registration_id", registration.id)
+                .eq("message_key", slot.key);
+              result.smsFailed += 1;
+            } else {
+              await supabase
+                .from("webinar_sms_deliveries")
+                .update({
+                  status: "sent",
+                  retell_chat_id: retellPayload.chat_id,
+                  failure_reason: null,
+                  sent_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("registration_id", registration.id)
+                .eq("message_key", slot.key);
+              result.smsSent += 1;
+            }
+          }
+        }
+      }
 
       const { data: claimStatus, error: claimError } = await supabase.rpc(
         "claim_webinar_reminder_delivery",

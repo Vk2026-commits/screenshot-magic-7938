@@ -91,6 +91,7 @@ export interface RegistrationInput {
   first_name: string;
   email: string;
   phone: string;
+  sms_opt_in: boolean;
 }
 
 export const REGISTRATION_KEY = "aiw_registration";
@@ -106,6 +107,7 @@ export async function registerForWebinar(input: RegistrationInput) {
       first_name: input.first_name.trim(),
       email: input.email.trim().toLowerCase(),
       phone: input.phone.trim(),
+      sms_opt_in: input.sms_opt_in,
       session_date: session.iso,
       assessment_id: ids.assessmentId,
       utm_source: attribution.utm_source,
@@ -128,6 +130,17 @@ export async function registerForWebinar(input: RegistrationInput) {
     // The registration is still complete if email delivery is temporarily unavailable.
     // The server-side delivery ledger makes a later retry safe and idempotent.
     console.error("Could not start webinar confirmation email delivery.", emailError);
+  }
+
+  if (input.sms_opt_in) {
+    const { error: smsError } = await supabase.functions.invoke("send-webinar-registration-sms", {
+      body: { registrationId },
+    });
+    if (smsError) {
+      // SMS is strictly opt-in and never blocks a completed registration.
+      // Its server-side delivery ledger makes a later retry safe and idempotent.
+      console.error("Could not start webinar confirmation SMS delivery.", smsError);
+    }
   }
 
   try {

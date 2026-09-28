@@ -2,13 +2,28 @@ import { useState } from "react";
 import { ArrowRight, Calendar, Check, Clock, Globe, Loader2, Lock, X } from "lucide-react";
 import { webinar } from "@/content/webinar";
 import type { RegistrationInput } from "@/lib/webinar-api";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const eyebrow = "text-[11px] font-semibold uppercase tracking-[0.22em] text-primary";
 const h2 = "text-[28px] font-bold leading-[1.1] sm:text-5xl";
-const glow = { boxShadow: "0 16px 40px -18px color-mix(in oklab, var(--primary) 90%, transparent)" };
+const glow = {
+  boxShadow: "0 16px 40px -18px color-mix(in oklab, var(--primary) 90%, transparent)",
+};
 
-export function Cta({ label = webinar.cta, onClick, className = "" }: { label?: string; onClick: () => void; className?: string }) {
+export function Cta({
+  label = webinar.cta,
+  onClick,
+  className = "",
+}: {
+  label?: string;
+  onClick: () => void;
+  className?: string;
+}) {
   return (
     <button
       type="button"
@@ -23,7 +38,9 @@ export function Cta({ label = webinar.cta, onClick, className = "" }: { label?: 
 }
 
 function Section({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <section className={`mx-auto max-w-5xl px-5 py-16 sm:py-24 ${className}`}>{children}</section>;
+  return (
+    <section className={`mx-auto max-w-5xl px-5 py-16 sm:py-24 ${className}`}>{children}</section>
+  );
 }
 
 export function ScheduleChips() {
@@ -35,7 +52,10 @@ export function ScheduleChips() {
   return (
     <div className="flex flex-wrap gap-2">
       {items.map(({ icon: I, t }) => (
-        <span key={t} className="flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-2 text-xs font-medium sm:text-sm">
+        <span
+          key={t}
+          className="flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-2 text-xs font-medium sm:text-sm"
+        >
           <I className="size-3.5 text-primary" />
           {t}
         </span>
@@ -56,10 +76,14 @@ export function Hero({ onCta, sessionLabel }: { onCta: () => void; sessionLabel:
       <div className="relative mx-auto max-w-3xl px-5 py-14 sm:py-28 animate-rise">
         <p className={eyebrow}>{h.eyebrow}</p>
         <h1 className="mt-4 text-[40px] font-bold leading-[1.04] sm:text-7xl">{h.headline}</h1>
-        <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-muted-foreground sm:text-xl">{h.sub}</p>
+        <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-muted-foreground sm:text-xl">
+          {h.sub}
+        </p>
         <Cta onClick={onCta} className="mt-9" />
         <p className="mt-3 text-sm font-medium">{h.under}</p>
-        {sessionLabel && <p className="mt-1 text-xs text-muted-foreground">Next session: {sessionLabel}</p>}
+        {sessionLabel && (
+          <p className="mt-1 text-xs text-muted-foreground">Next session: {sessionLabel}</p>
+        )}
         <p className="mt-10 max-w-xl border-l-2 border-primary/60 pl-4 text-[15px] leading-relaxed text-muted-foreground sm:text-base">
           {h.support}
         </p>
@@ -75,10 +99,14 @@ export function Opportunity() {
       <h2 className={h2}>{o.headline}</h2>
       <p className="mt-6 text-[16px] leading-relaxed text-muted-foreground sm:text-lg">{o.lead}</p>
       <p className="mt-4 text-[16px] leading-relaxed text-muted-foreground sm:text-lg">{o.body}</p>
-      <p className="mt-6 font-display text-2xl font-semibold text-primary sm:text-3xl">{o.question}</p>
+      <p className="mt-6 font-display text-2xl font-semibold text-primary sm:text-3xl">
+        {o.question}
+      </p>
       <div className="mt-8 space-y-4">
         {o.points.map((p) => (
-          <p key={p} className="panel rounded-2xl p-5 text-[15px] leading-relaxed sm:text-base">{p}</p>
+          <p key={p} className="panel rounded-2xl p-5 text-[15px] leading-relaxed sm:text-base">
+            {p}
+          </p>
         ))}
       </div>
       <p className="mt-8 text-[17px] font-semibold sm:text-xl">{o.close}</p>
@@ -111,16 +139,25 @@ export function StartOver() {
       <Section className="max-w-3xl">
         <p className={eyebrow}>{s.eyebrow}</p>
         <h2 className={`${h2} mt-4`}>{s.headline}</h2>
-        <p className="mt-6 text-[16px] leading-relaxed text-muted-foreground sm:text-lg">{s.body}</p>
-        <p className="mt-8 text-sm font-semibold uppercase tracking-wider text-muted-foreground">{s.intro}</p>
+        <p className="mt-6 text-[16px] leading-relaxed text-muted-foreground sm:text-lg">
+          {s.body}
+        </p>
+        <p className="mt-8 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          {s.intro}
+        </p>
         <div className="mt-4 flex flex-wrap gap-2.5">
           {s.skills.map((k) => (
-            <span key={k} className="rounded-full border border-border bg-card px-4 py-2.5 text-[15px] font-medium">
+            <span
+              key={k}
+              className="rounded-full border border-border bg-card px-4 py-2.5 text-[15px] font-medium"
+            >
               {k}.
             </span>
           ))}
         </div>
-        <p className="mt-10 font-display text-xl font-semibold leading-snug sm:text-2xl">{s.close}</p>
+        <p className="mt-10 font-display text-xl font-semibold leading-snug sm:text-2xl">
+          {s.close}
+        </p>
         <p className="mt-3 text-muted-foreground">{s.close2}</p>
       </Section>
     </section>
@@ -139,7 +176,9 @@ export function Framework() {
             <div key={s.label} className="flex flex-col items-center gap-2 sm:flex-row sm:gap-3">
               <div
                 className={`w-full rounded-2xl border px-6 py-4 text-center font-display text-xl font-bold uppercase tracking-wider sm:w-auto sm:text-2xl ${
-                  last ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card"
+                  last
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card"
                 }`}
                 style={last ? glow : undefined}
               >
@@ -152,8 +191,13 @@ export function Framework() {
       </div>
       <ol className="mx-auto mt-12 max-w-2xl space-y-3">
         {f.steps.map((s, i) => (
-          <li key={s.label} className="flex gap-4 rounded-xl border border-border/60 bg-card/50 p-4">
-            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">{i + 1}</span>
+          <li
+            key={s.label}
+            className="flex gap-4 rounded-xl border border-border/60 bg-card/50 p-4"
+          >
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
+              {i + 1}
+            </span>
             <span className="text-[15px] leading-relaxed sm:text-base">{s.text}</span>
           </li>
         ))}
@@ -187,11 +231,19 @@ export function Stages() {
       <div className="mt-10 grid gap-4 sm:grid-cols-3">
         {s.items.map((st, i) => (
           <div key={st.title} className="panel relative overflow-hidden rounded-2xl p-6">
-            <div className="absolute inset-x-0 top-0 h-1 bg-primary" style={{ opacity: 0.35 + i * 0.3 }} />
+            <div
+              className="absolute inset-x-0 top-0 h-1 bg-primary"
+              style={{ opacity: 0.35 + i * 0.3 }}
+            />
             <p className={eyebrow}>{st.tag}</p>
             <h3 className="mt-3 text-xl font-bold uppercase tracking-wide">{st.title}</h3>
             {st.lines.map((l, j) => (
-              <p key={l} className={`mt-3 text-[15px] leading-relaxed ${j === 0 ? "" : "text-muted-foreground"}`}>{l}</p>
+              <p
+                key={l}
+                className={`mt-3 text-[15px] leading-relaxed ${j === 0 ? "" : "text-muted-foreground"}`}
+              >
+                {l}
+              </p>
             ))}
           </div>
         ))}
@@ -210,11 +262,16 @@ export function PathFinderBridge({ onCta }: { onCta: () => void }) {
     <Section className="max-w-3xl">
       <div className="panel glow-ring rounded-3xl p-6 sm:p-10">
         <h2 className="text-2xl font-bold leading-tight sm:text-4xl">{p.headline}</h2>
-        <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground sm:text-base">{p.body}</p>
+        <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground sm:text-base">
+          {p.body}
+        </p>
         <p className="mt-4 font-semibold">{p.deeper}</p>
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
           {[p.q1, p.q2].map((q, i) => (
-            <div key={q.quote} className={`rounded-xl border p-4 ${i ? "border-primary/50 bg-primary/10" : "border-border bg-navy-deep"}`}>
+            <div
+              key={q.quote}
+              className={`rounded-xl border p-4 ${i ? "border-primary/50 bg-primary/10" : "border-border bg-navy-deep"}`}
+            >
               <p className="text-xs text-muted-foreground">{q.label}</p>
               <p className="mt-2 font-display text-lg font-semibold">“{q.quote}”</p>
             </div>
@@ -243,7 +300,12 @@ export function RegisterBlock({
   sessionLabel: string;
 }) {
   const r = webinar.register;
-  const [v, setV] = useState<RegistrationInput>({ first_name: "", email: "", phone: "" });
+  const [v, setV] = useState<RegistrationInput>({
+    first_name: "",
+    email: "",
+    phone: "",
+    sms_opt_in: false,
+  });
   const [errs, setErrs] = useState<Partial<Record<keyof RegistrationInput, string>>>({});
   const validate = () => {
     const e: typeof errs = {};
@@ -259,7 +321,10 @@ export function RegisterBlock({
     { k: "phone", label: "Mobile Phone Number", type: "tel", ph: "(555) 123-4567", ac: "tel" },
   ] as const;
   return (
-    <section id="register" className="relative scroll-mt-14 overflow-hidden border-y border-primary/30 bg-navy-deep">
+    <section
+      id="register"
+      className="relative scroll-mt-14 overflow-hidden border-y border-primary/30 bg-navy-deep"
+    >
       <div
         className="pointer-events-none absolute -right-40 top-0 size-[480px] rounded-full opacity-20 blur-3xl"
         style={{ background: "var(--primary)" }}
@@ -270,13 +335,22 @@ export function RegisterBlock({
           <h2 className={`${h2} mt-4`}>{r.headline}</h2>
           <div className="mt-8 grid grid-cols-2 gap-3">
             {r.facts.map((f) => (
-              <div key={f} className="rounded-xl border border-border bg-card px-4 py-4 text-center font-display text-sm font-bold uppercase tracking-wider sm:text-base">
+              <div
+                key={f}
+                className="rounded-xl border border-border bg-card px-4 py-4 text-center font-display text-sm font-bold uppercase tracking-wider sm:text-base"
+              >
                 {f}
               </div>
             ))}
           </div>
-          <p className="mt-6 text-[15px] leading-relaxed text-muted-foreground sm:text-base">{r.copy}</p>
-          {sessionLabel && <p className="mt-2 text-sm font-medium text-primary">Upcoming session: {sessionLabel}</p>}
+          <p className="mt-6 text-[15px] leading-relaxed text-muted-foreground sm:text-base">
+            {r.copy}
+          </p>
+          {sessionLabel && (
+            <p className="mt-2 text-sm font-medium text-primary">
+              Upcoming session: {sessionLabel}
+            </p>
+          )}
         </div>
         <form
           className="panel space-y-4 rounded-2xl p-6 sm:p-8"
@@ -297,9 +371,42 @@ export function RegisterBlock({
                 value={v[f.k]}
                 onChange={(e) => setV((s) => ({ ...s, [f.k]: e.target.value }))}
               />
-              {errs[f.k] && <span className="mt-1 block text-xs text-destructive">{errs[f.k]}</span>}
+              {errs[f.k] && (
+                <span className="mt-1 block text-xs text-destructive">{errs[f.k]}</span>
+              )}
             </label>
           ))}
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/70 bg-navy-deep/70 p-3 text-xs leading-relaxed text-muted-foreground">
+            <input
+              className="mt-0.5 size-4 shrink-0 accent-primary"
+              type="checkbox"
+              checked={v.sms_opt_in}
+              onChange={(e) => setV((s) => ({ ...s, sms_opt_in: e.target.checked }))}
+            />
+            <span>
+              Yes, send me automated webinar reminders and Vektiss updates by text. Msg &amp; data
+              rates may apply. Up to 7 messages per webinar registration, plus replies. Reply STOP
+              to opt out or HELP for help. Consent is not required to register or purchase. See the{" "}
+              <a
+                className="text-primary underline underline-offset-2"
+                href="https://vektiss.com/terms"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Terms
+              </a>{" "}
+              and{" "}
+              <a
+                className="text-primary underline underline-offset-2"
+                href="https://vektiss.com/privacy"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Privacy Policy
+              </a>
+              .
+            </span>
+          </label>
           <button
             type="submit"
             disabled={submitting}
@@ -345,8 +452,12 @@ export function Faq() {
       <Accordion type="single" collapsible className="mt-8">
         {webinar.faq.map((f, i) => (
           <AccordionItem key={f.q} value={`q${i}`} className="border-border">
-            <AccordionTrigger className="py-5 text-left text-base font-semibold hover:no-underline">{f.q}</AccordionTrigger>
-            <AccordionContent className="text-[15px] leading-relaxed text-muted-foreground">{f.a}</AccordionContent>
+            <AccordionTrigger className="py-5 text-left text-base font-semibold hover:no-underline">
+              {f.q}
+            </AccordionTrigger>
+            <AccordionContent className="text-[15px] leading-relaxed text-muted-foreground">
+              {f.a}
+            </AccordionContent>
           </AccordionItem>
         ))}
       </Accordion>
@@ -365,7 +476,9 @@ export function FinalCta({ onCta }: { onCta: () => void }) {
           <br />
           <span className="text-primary">{f.headline[1]}</span>
         </h2>
-        <p className="mx-auto mt-6 max-w-xl text-[16px] leading-relaxed text-muted-foreground sm:text-lg">{f.copy}</p>
+        <p className="mx-auto mt-6 max-w-xl text-[16px] leading-relaxed text-muted-foreground sm:text-lg">
+          {f.copy}
+        </p>
         <p className="mt-8 font-display text-lg font-bold uppercase tracking-[0.18em]">
           {f.display[0]} <span className="text-primary">•</span> {f.display[1]}
         </p>
