@@ -116,3 +116,83 @@ $$;
 
 revoke all on function public.register_for_webinar(jsonb) from public;
 grant execute on function public.register_for_webinar(jsonb) to anon, authenticated;
+
+-- WEBINAR EMAIL DELIVERIES ---------------------------------------------
+-- Private server-side ledger for the registration confirmation email. It
+-- prevents duplicate Zoom invitations if a browser retries a completed signup.
+create table if not exists public.webinar_email_deliveries (
+  id uuid primary key default gen_random_uuid(),
+  registration_id uuid not null references public.webinar_registrations(id) on delete cascade,
+  status text not null default 'pending',
+  attempts int not null default 0,
+  resend_email_id text,
+  failure_reason text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  sent_at timestamptz
+);
+
+alter table public.webinar_email_deliveries
+  add column if not exists registration_id uuid references public.webinar_registrations(id) on delete cascade,
+  add column if not exists status text default 'pending',
+  add column if not exists attempts int default 0,
+  add column if not exists resend_email_id text,
+  add column if not exists failure_reason text,
+  add column if not exists created_at timestamptz not null default now(),
+  add column if not exists updated_at timestamptz not null default now(),
+  add column if not exists sent_at timestamptz;
+
+create unique index if not exists webinar_email_deliveries_registration_id_key
+  on public.webinar_email_deliveries (registration_id);
+
+alter table public.webinar_email_deliveries enable row level security;
+revoke all on public.webinar_email_deliveries from public, anon, authenticated;
+grant all on public.webinar_email_deliveries to service_role;
+
+create or replace function public.claim_webinar_registration_email(p_registration_id uuid)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_status text;
+  v_updated_at timestamptz;
+begin
+  insert into public.webinar_email_deliveries (
+    registration_id, status, attempts, updated_at
+  )
+  values (p_registration_id, 'processing', 1, now())
+  on conflict (registration_id) do nothing;
+
+  if found then
+    return 'claimed';
+  end if;
+
+  select status, updated_at
+  into v_status, v_updated_at
+  from public.webinar_email_deliveries
+  where registration_id = p_registration_id
+  for update;
+
+  if v_status = 'sent' then
+    return 'sent';
+  end if;
+
+  if v_status = 'processing' and v_updated_at > now() - interval '10 minutes' then
+    return 'processing';
+  end if;
+
+  update public.webinar_email_deliveries
+  set status = 'processing',
+      attempts = coalesce(attempts, 0) + 1,
+      failure_reason = null,
+      updated_at = now()
+  where registration_id = p_registration_id;
+
+  return 'claimed';
+end;
+$$;
+
+revoke all on function public.claim_webinar_registration_email(uuid) from public, anon, authenticated;
+grant execute on function public.claim_webinar_registration_email(uuid) to service_role;

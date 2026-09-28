@@ -28,7 +28,9 @@ export function upcomingSession(now = new Date()) {
   const dow = days.indexOf(parts["weekday"]!);
   let add = (7 - dow) % 7;
   if (add === 0 && Number(parts["hour"]) >= 19) add = 7;
-  const base = new Date(Date.UTC(Number(parts["year"]), Number(parts["month"]) - 1, Number(parts["day"])));
+  const base = new Date(
+    Date.UTC(Number(parts["year"]), Number(parts["month"]) - 1, Number(parts["day"])),
+  );
   base.setUTCDate(base.getUTCDate() + add);
   const iso = base.toISOString().slice(0, 10);
   const label = base.toLocaleDateString("en-US", {
@@ -94,7 +96,8 @@ export interface RegistrationInput {
 export const REGISTRATION_KEY = "aiw_registration";
 
 export async function registerForWebinar(input: RegistrationInput) {
-  if (!supabaseConfigured) return { ok: false as const, error: "Registration is not connected yet." };
+  if (!supabaseConfigured)
+    return { ok: false as const, error: "Registration is not connected yet." };
   const session = upcomingSession();
   const ids = captureFunnelIds();
   const attribution = captureAttribution();
@@ -114,14 +117,30 @@ export async function registerForWebinar(input: RegistrationInput) {
       landing_page_url: attribution.landing_page_url,
     },
   });
-  if (error || !data) return { ok: false as const, error: error?.message ?? "Registration failed." };
+  if (error || !data)
+    return { ok: false as const, error: error?.message ?? "Registration failed." };
+
+  const registrationId = data as string;
+  const { error: emailError } = await supabase.functions.invoke("send-webinar-registration-email", {
+    body: { registrationId },
+  });
+  if (emailError) {
+    // The registration is still complete if email delivery is temporarily unavailable.
+    // The server-side delivery ledger makes a later retry safe and idempotent.
+    console.error("Could not start webinar confirmation email delivery.", emailError);
+  }
+
   try {
     sessionStorage.setItem(
       REGISTRATION_KEY,
-      JSON.stringify({ firstName: input.first_name.trim(), sessionLabel: session.label, planUrl: ids.planUrl }),
+      JSON.stringify({
+        firstName: input.first_name.trim(),
+        sessionLabel: session.label,
+        planUrl: ids.planUrl,
+      }),
     );
   } catch {
     /* ignore */
   }
-  return { ok: true as const, id: data as string };
+  return { ok: true as const, id: registrationId };
 }
