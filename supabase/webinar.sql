@@ -42,6 +42,9 @@ declare
   v_lead uuid;
   v_assessment uuid;
   v_id uuid;
+  v_central timestamp := now() at time zone 'America/Chicago';
+  v_days_until_sunday integer;
+  v_session_date date;
 begin
   if v_email is null or v_email !~ '^[^\s@]+@[^\s@]+\.[a-z]{2,}$' then
     raise exception 'invalid email';
@@ -49,6 +52,14 @@ begin
   if coalesce(trim(p->>'first_name'), '') = '' then
     raise exception 'first name required';
   end if;
+
+  -- The browser shows this date, but the database is authoritative: Sunday
+  -- registrations after 7:00 PM Central apply to the following week's session.
+  v_days_until_sunday := (7 - extract(dow from v_central)::integer) % 7;
+  if extract(dow from v_central)::integer = 0 and v_central::time >= time '19:00' then
+    v_days_until_sunday := 7;
+  end if;
+  v_session_date := v_central::date + v_days_until_sunday;
 
   -- Existing lead by normalized email (never trust a passed lead_id alone).
   select id into v_lead from public.leads where email = v_email;
@@ -89,7 +100,7 @@ begin
     referral_url, landing_page_url
   ) values (
     v_lead, trim(p->>'first_name'), v_email, nullif(trim(p->>'phone'), ''),
-    'Build Your First AI Income Stream', (p->>'session_date')::date, '7:00 PM', 'America/Chicago',
+    'Build Your First AI Income Stream', v_session_date, '7:00 PM', 'America/Chicago',
     v_assessment, p->>'utm_source', p->>'utm_medium', p->>'utm_campaign', p->>'utm_content', p->>'utm_term',
     p->>'referral_url', p->>'landing_page_url'
   )
