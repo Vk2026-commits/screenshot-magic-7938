@@ -277,7 +277,7 @@ function emailBody(params: {
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f6f8;padding:32px 16px">
       <tr><td align="center">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background:#ffffff;border-radius:16px;overflow:hidden">
-          <tr><td style="background:#0f1f3d;padding:28px 32px"><p style="margin:0;color:#9fd4ff;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">AI Income Training</p></td></tr>
+          <tr><td style="background:#0f1f3d;padding:28px 32px"><p style="margin:0;color:#9fd4ff;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">${webinarName}</p></td></tr>
           <tr><td style="padding:36px 32px">
             <h1 style="margin:0 0 16px;font-size:28px;line-height:1.2;color:#182033">${firstName}, you’re registered.</h1>
             <p style="margin:0 0 24px;color:#5d6472;font-size:16px;line-height:1.6">Your seat is confirmed for <strong style="color:#182033">${webinarName}</strong>.</p>
