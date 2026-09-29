@@ -50,16 +50,6 @@ function isUuid(value: unknown): value is string {
   );
 }
 
-function safeHttpsUrl(value: string | undefined) {
-  if (!value) return null;
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" ? url.toString() : null;
-  } catch {
-    return null;
-  }
-}
-
 function normalizeUsPhone(value: string | null) {
   const digits = (value ?? "").replace(/\D/g, "");
   if (digits.length === 10) return `+1${digits}`;
@@ -88,9 +78,10 @@ function friendlyTime(registration: WebinarRegistration) {
   return `${time} ${timezone}`;
 }
 
-function confirmationText(registration: WebinarRegistration, joinUrl: string) {
+function confirmationText(registration: WebinarRegistration) {
   const firstName = registration.first_name?.trim() || "there";
-  return `Hi ${firstName}, you’re registered for Build Your First AI Income Stream on ${sessionDateLabel(registration.session_date)} at ${friendlyTime(registration)}. Join live: ${joinUrl} Reply STOP to opt out, HELP for help.`;
+  const webinarName = registration.webinar_name ?? "Build Your First AI Income Stream";
+  return `Hi ${firstName}, your seat is confirmed for ${webinarName} on ${sessionDateLabel(registration.session_date)} at ${friendlyTime(registration)}. Add it to your calendar from your confirmation email. We’ll text your Zoom link 1 hour before we start. Reply STOP to opt out, HELP for help.`;
 }
 
 Deno.serve(async (request) => {
@@ -106,12 +97,10 @@ Deno.serve(async (request) => {
   const retellApiKey = Deno.env.get("RETELL_API_KEY");
   const retellFromNumber = normalizeUsPhone(Deno.env.get("RETELL_FROM_NUMBER") ?? null);
   const retellAgentId = Deno.env.get("RETELL_SMS_AGENT_ID")?.trim();
-  const webinarJoinUrl = safeHttpsUrl(Deno.env.get("WEBINAR_JOIN_URL"));
-  const registrationUrl = safeHttpsUrl(Deno.env.get("WEBINAR_REGISTRATION_URL")) ?? defaultOrigin;
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-  if (!supabaseUrl || !serviceRoleKey || !webinarJoinUrl) {
+  if (!supabaseUrl || !serviceRoleKey) {
     console.error("Webinar SMS function is missing Supabase or webinar configuration.");
     return json(origin, { ok: false, error: "Webinar SMS delivery is not configured." }, 500);
   }
@@ -172,7 +161,7 @@ Deno.serve(async (request) => {
       return json(origin, { ok: true, status: "already_processing" }, 202);
     }
 
-    const message = confirmationText(registration, webinarJoinUrl);
+    const message = confirmationText(registration);
     const retellResponse = await fetch("https://api.retellai.com/create-sms-chat", {
       method: "POST",
       headers: {
@@ -194,8 +183,6 @@ Deno.serve(async (request) => {
           recipient_first_name: registration.first_name?.trim() || "there",
           session_date: sessionDateLabel(registration.session_date),
           session_time: friendlyTime(registration),
-          join_url: webinarJoinUrl,
-          registration_url: registrationUrl,
         },
       }),
     });
