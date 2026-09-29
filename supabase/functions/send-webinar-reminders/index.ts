@@ -310,10 +310,22 @@ function smsMessageFor(
   }
 }
 
-function footerHtml() {
+async function unsubscribeUrlFor(supabase: any, baseUrl: string, email: string) {
+  const { data: token, error } = await supabase.rpc("get_webinar_email_unsubscribe_token", {
+    p_email: email,
+  });
+  if (error || typeof token !== "string") {
+    console.error("Could not create a webinar email unsubscribe link.", error);
+    return null;
+  }
+  const url = new URL(baseUrl);
+  url.searchParams.set("token", token);
+  return url.toString();
+}
+
+function footerHtml(unsubscribeUrl: string | null) {
   const mailingAddress = Deno.env.get("BUSINESS_MAILING_ADDRESS")?.trim();
   const privacyUrl = safeHttpsUrl(Deno.env.get("PRIVACY_POLICY_URL"));
-  const unsubscribeUrl = safeHttpsUrl(Deno.env.get("UNSUBSCRIBE_URL"));
   const lines = ["You received this email because you registered for the AI Income Training."];
   if (mailingAddress) lines.push(mailingAddress);
   if (privacyUrl || unsubscribeUrl) {
@@ -333,7 +345,7 @@ function footerHtml() {
     .join("")}</div>`;
 }
 
-function renderEmail(firstName: string, message: EmailMessage) {
+function renderEmail(firstName: string, message: EmailMessage, unsubscribeUrl: string | null) {
   const safeFirstName = escapeHtml(firstName.trim() || "there");
   const paragraphs = message.paragraphs
     .map(
@@ -353,7 +365,7 @@ function renderEmail(firstName: string, message: EmailMessage) {
             <h1 style="margin:0 0 20px;color:#182033;font-size:26px;line-height:1.25">${safeFirstName}, here’s your webinar update.</h1>
             ${paragraphs}
             <table role="presentation" cellspacing="0" cellpadding="0"><tr><td style="border-radius:10px;background:#1674c4"><a href="${escapeHtml(message.ctaUrl)}" style="display:inline-block;padding:14px 22px;color:#ffffff;font-size:16px;font-weight:700;line-height:1;text-decoration:none">${escapeHtml(message.ctaLabel)}</a></td></tr></table>
-            ${footerHtml()}
+            ${footerHtml(unsubscribeUrl)}
           </td></tr>
         </table>
       </td></tr>
@@ -362,8 +374,10 @@ function renderEmail(firstName: string, message: EmailMessage) {
 </html>`;
 }
 
-function renderText(message: EmailMessage) {
-  return [...message.paragraphs, "", `${message.ctaLabel}: ${message.ctaUrl}`].join("\n\n");
+function renderText(message: EmailMessage, unsubscribeUrl: string | null) {
+  const lines = [...message.paragraphs, "", `${message.ctaLabel}: ${message.ctaUrl}`];
+  if (unsubscribeUrl) lines.push("", `Unsubscribe: ${unsubscribeUrl}`);
+  return lines.join("\n\n");
 }
 
 async function sha256(value: string) {
@@ -424,6 +438,7 @@ Deno.serve(async (request) => {
   const resendFromEmail = Deno.env.get("RESEND_FROM_EMAIL");
   const webinarJoinUrl = safeHttpsUrl(Deno.env.get("WEBINAR_JOIN_URL"));
   const webinarReplayUrl = safeHttpsUrl(Deno.env.get("WEBINAR_REPLAY_URL"));
+  const unsubscribeBaseUrl = safeHttpsUrl(Deno.env.get("UNSUBSCRIBE_URL"));
   const retellApiKey = Deno.env.get("RETELL_API_KEY");
   const retellFromNumber = normalizeUsPhone(Deno.env.get("RETELL_FROM_NUMBER") ?? null);
   const retellAgentId = Deno.env.get("RETELL_SMS_AGENT_ID")?.trim();
@@ -431,7 +446,7 @@ Deno.serve(async (request) => {
     safeHttpsUrl(Deno.env.get("WEBINAR_REGISTRATION_URL")) ??
     "https://screenshot-magic-7938.lovable.app/";
   const smsConfigured = Boolean(retellApiKey && retellFromNumber && retellAgentId);
-  if (!resendApiKey || !resendFromEmail || !webinarJoinUrl) {
+  if (!resendApiKey || !resendFromEmail || !webinarJoinUrl || !unsubscribeBaseUrl) {
     console.error("Reminder function is missing email delivery configuration.");
     return Response.json(
       { ok: false, error: "Reminder email delivery is not configured." },
@@ -469,6 +484,25 @@ Deno.serve(async (request) => {
     return Response.json({ ok: false, error: "Reminder lookup failed." }, { status: 500 });
   }
 
+  const optedOutEmails = new Set<string>();
+  const registrationEmails = (registrations ?? [])
+    .map((registration) => registration.email?.trim().toLowerCase())
+    .filter((email): email is string => Boolean(email));
+  if (registrationEmails.length > 0) {
+    const { data: optOuts, error: optOutError } = await supabase
+      .from("webinar_email_opt_outs")
+      .select("email")
+      .in("email", registrationEmails);
+    if (optOutError) {
+      console.error("Could not load webinar email opt-outs.", optOutError);
+      return Response.json(
+        { ok: false, error: "Email preference lookup failed." },
+        { status: 500 },
+      );
+    }
+    for (const optOut of optOuts ?? []) optedOutEmails.add(optOut.email.toLowerCase());
+  }
+
   const result = {
     ok: true,
     dryRun,
@@ -477,6 +511,7 @@ Deno.serve(async (request) => {
     sent: 0,
     alreadyHandled: 0,
     skipped: 0,
+    suppressed: 0,
     failed: 0,
     smsSent: 0,
     smsAlreadyHandled: 0,
@@ -486,6 +521,8 @@ Deno.serve(async (request) => {
 
   for (const registration of (registrations ?? []) as Registration[]) {
     if (!registration.id || !registration.email || !registration.session_date) continue;
+    const recipientEmail = registration.email.trim().toLowerCase();
+    const emailOptedOut = optedOutEmails.has(recipientEmail);
     const registeredAt = registration.created_at ? new Date(registration.created_at) : null;
 
     for (const slot of reminderSlots(registration.session_date)) {
@@ -494,8 +531,20 @@ Deno.serve(async (request) => {
       if (ageMinutes < 0 || ageMinutes > slot.graceMinutes) continue;
       if (registeredAt && registeredAt.getTime() >= scheduledTimestamp) continue;
 
-      const message = messageFor(slot.key, registration, webinarJoinUrl, webinarReplayUrl);
-      if (!message) {
+      const message = emailOptedOut
+        ? null
+        : messageFor(slot.key, registration, webinarJoinUrl, webinarReplayUrl);
+      const recipientPhone = normalizeUsPhone(registration.phone);
+      const smsMessage = smsMessageFor(slot.key, registration, webinarJoinUrl, webinarReplayUrl);
+      const smsEligible =
+        SMS_REMINDER_KEYS.has(slot.key) &&
+        registration.sms_opt_in === true &&
+        Boolean(recipientPhone && smsMessage && smsConfigured);
+      if (!message && !smsEligible) {
+        if (emailOptedOut) {
+          result.suppressed += 1;
+          continue;
+        }
         // Replay publishing is intentionally a prerequisite for the Monday email.
         console.warn("Replay follow-up skipped until WEBINAR_REPLAY_URL is configured.");
         result.skipped += 1;
@@ -510,9 +559,6 @@ Deno.serve(async (request) => {
       if (dryRun) continue;
 
       if (SMS_REMINDER_KEYS.has(slot.key)) {
-        const recipientPhone = normalizeUsPhone(registration.phone);
-        const smsMessage = smsMessageFor(slot.key, registration, webinarJoinUrl, webinarReplayUrl);
-
         if (registration.sms_opt_in !== true || !recipientPhone || !smsMessage || !smsConfigured) {
           result.smsSkipped += 1;
         } else {
@@ -594,6 +640,21 @@ Deno.serve(async (request) => {
         }
       }
 
+      if (emailOptedOut) {
+        result.suppressed += 1;
+        continue;
+      }
+      if (!message) {
+        // The SMS channel may still have delivered a replay after a replay URL was configured.
+        result.skipped += 1;
+        continue;
+      }
+      const unsubscribeUrl = await unsubscribeUrlFor(supabase, unsubscribeBaseUrl, recipientEmail);
+      if (!unsubscribeUrl) {
+        result.failed += 1;
+        continue;
+      }
+
       const { data: claimStatus, error: claimError } = await supabase.rpc(
         "claim_webinar_reminder_delivery",
         {
@@ -622,10 +683,10 @@ Deno.serve(async (request) => {
         },
         body: JSON.stringify({
           from: resendFromEmail,
-          to: [registration.email.trim().toLowerCase()],
+          to: [recipientEmail],
           subject: message.subject,
-          html: renderEmail(registration.first_name ?? "", message),
-          text: renderText(message),
+          html: renderEmail(registration.first_name ?? "", message, unsubscribeUrl),
+          text: renderText(message, unsubscribeUrl),
           tags: [
             { name: "funnel", value: "ai_income_webinar" },
             { name: "reminder", value: slot.key },

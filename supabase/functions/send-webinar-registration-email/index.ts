@@ -67,6 +67,19 @@ function escapeHtml(value: string) {
   });
 }
 
+async function unsubscribeUrlFor(supabase: any, baseUrl: string, email: string) {
+  const { data: token, error } = await supabase.rpc("get_webinar_email_unsubscribe_token", {
+    p_email: email,
+  });
+  if (error || typeof token !== "string") {
+    console.error("Could not create a webinar email unsubscribe link.", error);
+    return null;
+  }
+  const url = new URL(baseUrl);
+  url.searchParams.set("token", token);
+  return url.toString();
+}
+
 function sessionDateLabel(value: string | null) {
   const date = value ? new Date(`${value}T12:00:00Z`) : null;
   if (!date || Number.isNaN(date.valueOf())) return "this Sunday";
@@ -86,6 +99,7 @@ function emailBody(params: {
   sessionTime: string | null;
   timezone: string | null;
   joinUrl: string;
+  unsubscribeUrl: string;
 }) {
   const firstName = escapeHtml(params.firstName.trim() || "there");
   const webinarName = escapeHtml(params.webinarName);
@@ -95,6 +109,17 @@ function emailBody(params: {
     params.timezone === "America/Chicago" ? "Central Time" : (params.timezone ?? "Central Time"),
   );
   const joinUrl = escapeHtml(params.joinUrl);
+  const unsubscribeUrl = escapeHtml(params.unsubscribeUrl);
+  const mailingAddress = escapeHtml(Deno.env.get("BUSINESS_MAILING_ADDRESS")?.trim() ?? "");
+  const privacyUrl = safeHttpsUrl(Deno.env.get("PRIVACY_POLICY_URL"));
+  const footerLines = [
+    "You received this email because you registered for the AI Income Training.",
+    mailingAddress,
+    privacyUrl
+      ? `<a href="${escapeHtml(privacyUrl)}" style="color:#6b7280">Privacy policy</a>`
+      : "",
+    `<a href="${unsubscribeUrl}" style="color:#6b7280">Unsubscribe</a>`,
+  ].filter(Boolean);
 
   const html = `<!doctype html>
 <html lang="en">
@@ -117,7 +142,7 @@ function emailBody(params: {
             <table role="presentation" cellspacing="0" cellpadding="0"><tr><td style="border-radius:10px;background:#1674c4"><a href="${joinUrl}" style="display:inline-block;padding:14px 22px;color:#ffffff;font-size:16px;font-weight:700;line-height:1;text-decoration:none">Join the live Zoom training</a></td></tr></table>
             <p style="margin:24px 0 0;color:#5d6472;font-size:13px;line-height:1.6">Save this email so your Zoom link is ready when the training begins.</p>
           </td></tr>
-          <tr><td style="padding:20px 32px;background:#f4f6f8"><p style="margin:0;color:#6b7280;font-size:12px;line-height:1.5">You received this email because you registered for the AI Income Training.</p></td></tr>
+          <tr><td style="padding:20px 32px;background:#f4f6f8"><div style="color:#6b7280;font-size:12px;line-height:1.6">${footerLines.map((line) => `<div>${line}</div>`).join("")}</div></td></tr>
         </table>
       </td></tr>
     </table>
@@ -142,6 +167,11 @@ function emailBody(params: {
     `Join the live Zoom training: ${params.joinUrl}`,
     "",
     "Save this email so your Zoom link is ready when the training begins.",
+    "",
+    "You received this email because you registered for the AI Income Training.",
+    ...(mailingAddress ? [mailingAddress] : []),
+    ...(privacyUrl ? [`Privacy policy: ${privacyUrl}`] : []),
+    `Unsubscribe: ${params.unsubscribeUrl}`,
   ].join("\n");
 
   return { html, text, sessionDate: sessionDateLabel(params.sessionDate) };
@@ -161,10 +191,18 @@ Deno.serve(async (request) => {
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
   const resendFromEmail = Deno.env.get("RESEND_FROM_EMAIL");
   const webinarJoinUrl = safeHttpsUrl(Deno.env.get("WEBINAR_JOIN_URL"));
+  const unsubscribeBaseUrl = safeHttpsUrl(Deno.env.get("UNSUBSCRIBE_URL"));
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-  if (!resendApiKey || !resendFromEmail || !webinarJoinUrl || !supabaseUrl || !serviceRoleKey) {
+  if (
+    !resendApiKey ||
+    !resendFromEmail ||
+    !webinarJoinUrl ||
+    !unsubscribeBaseUrl ||
+    !supabaseUrl ||
+    !serviceRoleKey
+  ) {
     console.error("Webinar email function is missing required configuration.");
     return json(origin, { ok: false, error: "Webinar email delivery is not configured." }, 500);
   }
@@ -216,6 +254,23 @@ Deno.serve(async (request) => {
       return json(origin, { ok: true, status: "already_processing" }, 202);
     }
 
+    const unsubscribeUrl = await unsubscribeUrlFor(
+      supabase,
+      unsubscribeBaseUrl,
+      registration.email.trim().toLowerCase(),
+    );
+    if (!unsubscribeUrl) {
+      await supabase
+        .from("webinar_email_deliveries")
+        .update({
+          status: "failed",
+          failure_reason: "Could not create unsubscribe link",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("registration_id", registration.id);
+      return json(origin, { ok: false, error: "Email preference setup failed." }, 500);
+    }
+
     const message = emailBody({
       firstName: registration.first_name ?? "",
       webinarName: registration.webinar_name ?? "Build Your First AI Income Stream",
@@ -223,6 +278,7 @@ Deno.serve(async (request) => {
       sessionTime: registration.session_time,
       timezone: registration.timezone,
       joinUrl: webinarJoinUrl,
+      unsubscribeUrl,
     });
 
     const resendResponse = await fetch("https://api.resend.com/emails", {
