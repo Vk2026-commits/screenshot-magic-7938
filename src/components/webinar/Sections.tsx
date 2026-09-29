@@ -64,24 +64,16 @@ export function ScheduleChips() {
   );
 }
 
-function CountdownClock() {
+function CountdownClock({ startsAt }: { startsAt: string }) {
   const [remaining, setRemaining] = useState<number | null>(null);
 
   useEffect(() => {
-    const target = new Date(webinar.countdown.target).getTime();
+    const target = new Date(startsAt).getTime();
     const update = () => setRemaining(Math.max(0, target - Date.now()));
     update();
     const interval = window.setInterval(update, 1000);
     return () => window.clearInterval(interval);
-  }, []);
-
-  if (remaining === 0) {
-    return (
-      <div className="mt-7 rounded-2xl border border-primary/40 bg-primary/10 px-5 py-4 text-sm font-semibold text-primary">
-        The live training is underway.
-      </div>
-    );
-  }
+  }, [startsAt]);
 
   const totalSeconds = Math.floor((remaining ?? 0) / 1000);
   const values = [
@@ -112,7 +104,15 @@ function CountdownClock() {
   );
 }
 
-export function Hero({ onCta }: { onCta: () => void }) {
+export function Hero({
+  onCta,
+  sessionLabel,
+  startsAt,
+}: {
+  onCta: () => void;
+  sessionLabel: string;
+  startsAt: string;
+}) {
   const h = webinar.hero;
   return (
     <section className="relative overflow-hidden">
@@ -122,14 +122,16 @@ export function Hero({ onCta }: { onCta: () => void }) {
         style={{ background: "color-mix(in oklab, var(--primary) 60%, transparent)" }}
       />
       <div className="relative mx-auto max-w-3xl px-5 py-14 sm:py-28 animate-rise">
-        <p className={eyebrow}>{h.eyebrow}</p>
+        <p className={eyebrow}>
+          {h.eyebrow} • {sessionLabel} at 7 PM Central
+        </p>
         <h1 className="mt-4 text-[40px] font-bold leading-[1.04] sm:text-7xl">{h.headline}</h1>
         <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-muted-foreground sm:text-xl">
           {h.sub}
         </p>
         <Cta onClick={onCta} className="mt-9" />
-        <p className="mt-3 text-sm font-medium">{h.under}</p>
-        <CountdownClock />
+        <p className="mt-3 text-sm font-medium">{h.under.replace("this Sunday", sessionLabel)}</p>
+        <CountdownClock startsAt={startsAt} />
         <p className="mt-10 max-w-xl border-l-2 border-primary/60 pl-4 text-[15px] leading-relaxed text-muted-foreground sm:text-base">
           {h.support}
         </p>
@@ -302,7 +304,13 @@ export function Stages() {
   );
 }
 
-export function PathFinderBridge({ onCta }: { onCta: () => void }) {
+export function PathFinderBridge({
+  onCta,
+  sessionLabel,
+}: {
+  onCta: () => void;
+  sessionLabel: string;
+}) {
   const p = webinar.pathFinder;
   return (
     <Section className="max-w-3xl">
@@ -323,7 +331,7 @@ export function PathFinderBridge({ onCta }: { onCta: () => void }) {
             </div>
           ))}
         </div>
-        <Cta label={p.cta} onClick={onCta} className="mt-8" />
+        <Cta label={p.cta.replace("This Sunday", sessionLabel)} onClick={onCta} className="mt-8" />
       </div>
     </Section>
   );
@@ -338,10 +346,12 @@ export function RegisterBlock({
   onSubmit,
   submitting,
   error,
+  sessionLabel,
 }: {
   onSubmit: (v: RegistrationInput) => void;
   submitting: boolean;
   error: string | null;
+  sessionLabel: string;
 }) {
   const r = webinar.register;
   const [v, setV] = useState<RegistrationInput>({
@@ -378,7 +388,7 @@ export function RegisterBlock({
           <p className={eyebrow}>{r.eyebrow}</p>
           <h2 className={`${h2} mt-4`}>{r.headline}</h2>
           <div className="mt-8 grid grid-cols-2 gap-3">
-            {r.facts.map((f) => (
+            {[sessionLabel, ...r.facts].map((f) => (
               <div
                 key={f}
                 className="rounded-xl border border-border bg-card px-4 py-4 text-center font-display text-sm font-bold uppercase tracking-wider sm:text-base"
@@ -484,7 +494,7 @@ export function Beliefs() {
   );
 }
 
-export function Faq() {
+export function Faq({ sessionLabel }: { sessionLabel: string }) {
   return (
     <Section className="max-w-3xl">
       <h2 className={h2}>Questions</h2>
@@ -495,7 +505,7 @@ export function Faq() {
               {f.q}
             </AccordionTrigger>
             <AccordionContent className="text-[15px] leading-relaxed text-muted-foreground">
-              {f.a}
+              {f.a.replace("{sessionDate}", sessionLabel)}
             </AccordionContent>
           </AccordionItem>
         ))}
@@ -504,7 +514,7 @@ export function Faq() {
   );
 }
 
-export function FinalCta({ onCta }: { onCta: () => void }) {
+export function FinalCta({ onCta, sessionLabel }: { onCta: () => void; sessionLabel: string }) {
   const f = webinar.final;
   return (
     <section className="relative overflow-hidden">
@@ -519,7 +529,8 @@ export function FinalCta({ onCta }: { onCta: () => void }) {
           {f.copy}
         </p>
         <p className="mt-8 font-display text-lg font-bold uppercase tracking-[0.18em]">
-          {f.display[0]} <span className="text-primary">•</span> {f.display[1]}
+          {f.display[0].replace("This Sunday", sessionLabel)}{" "}
+          <span className="text-primary">•</span> {f.display[1]}
         </p>
         <div className="mt-8 flex justify-center">
           <Cta onClick={onCta} />

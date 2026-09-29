@@ -9,9 +9,8 @@ import { PLAN_URL_HOSTS } from "@/content/webinar";
 
 const TZ = "America/Chicago";
 
-/** Upcoming Sunday (YYYY-MM-DD, Central). Today counts until 7:00 PM CT. */
-export function upcomingSession(now = new Date()) {
-  const parts = Object.fromEntries(
+function chicagoParts(date: Date) {
+  return Object.fromEntries(
     new Intl.DateTimeFormat("en-US", {
       timeZone: TZ,
       year: "numeric",
@@ -19,11 +18,40 @@ export function upcomingSession(now = new Date()) {
       day: "2-digit",
       weekday: "short",
       hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
       hourCycle: "h23",
     })
-      .formatToParts(now)
+      .formatToParts(date)
       .map((p) => [p.type, p.value]),
   );
+}
+
+/** Converts a non-ambiguous Central Time date/time into a UTC instant, including DST. */
+function chicagoDateTime(date: string, hour: number, minute: number) {
+  const [year, month, day] = date.split("-").map(Number);
+  const desiredAsUtc = Date.UTC(year, month - 1, day, hour, minute, 0);
+  let timestamp = desiredAsUtc;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const local = chicagoParts(new Date(timestamp));
+    const localAsUtc = Date.UTC(
+      Number(local["year"]),
+      Number(local["month"]) - 1,
+      Number(local["day"]),
+      Number(local["hour"]),
+      Number(local["minute"]),
+      Number(local["second"]),
+    );
+    timestamp += desiredAsUtc - localAsUtc;
+  }
+
+  return new Date(timestamp);
+}
+
+/** Upcoming Sunday (YYYY-MM-DD, Central). Today counts until 7:00 PM CT. */
+export function upcomingSession(now = new Date()) {
+  const parts = chicagoParts(now);
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const dow = days.indexOf(parts["weekday"]!);
   let add = (7 - dow) % 7;
@@ -39,7 +67,7 @@ export function upcomingSession(now = new Date()) {
     day: "numeric",
     timeZone: "UTC",
   });
-  return { iso, label };
+  return { iso, label, startsAt: chicagoDateTime(iso, 19, 0).toISOString() };
 }
 
 export interface FunnelIds {

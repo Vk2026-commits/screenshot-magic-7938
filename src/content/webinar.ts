@@ -1,17 +1,16 @@
 /** All webinar landing page copy. Edit here, not in the UI. */
 export const webinar = {
   name: "Build Your First AI Income Stream",
-  schedule: { day: "Sunday, October 4", time: "7:00 PM Central", place: "Live Online" },
+  schedule: { day: "This Sunday", time: "7:00 PM Central", place: "Live Online" },
   countdown: {
-    target: "2026-10-04T19:00:00-05:00",
     label: "Live training begins in",
   },
   cta: "Reserve My Seat",
   hero: {
-    eyebrow: "Free Live Training • Sunday, October 4 at 7 PM Central",
+    eyebrow: "Free Live Training",
     headline: "Build Your First AI Income Stream",
     sub: "Learn how to use the skills, experience, and knowledge you already have to create additional income with AI — without needing to quit your job, become a developer, or build complicated software.",
-    under: "Live Sunday, October 4 • 7:00 PM Central • Online",
+    under: "Live this Sunday • 7:00 PM Central • Online",
     support:
       "Whether your goal is an extra $500 a month or eventually building something much bigger, the first step is choosing the right path.",
   },
@@ -131,13 +130,13 @@ export const webinar = {
       label: "This live training helps answer:",
       quote: "How do I begin turning that path into real income?",
     },
-    cta: "Reserve My Seat for October 4",
+    cta: "Reserve My Seat for This Sunday",
   },
   register: {
     eyebrow: "Live Online Training",
     headline: "Join Us This Sunday.",
-    facts: ["October 4", "7:00 PM Central", "Live Online", "Free"],
-    copy: "Reserve your seat and we’ll send you everything you need for the live training on Sunday, October 4.",
+    facts: ["7:00 PM Central", "Live Online", "Free"],
+    copy: "Reserve your seat and we’ll send you everything you need for this Sunday’s live training.",
     privacy: "No spam. Just your training details and reminders.",
   },
   beliefs: {
@@ -153,7 +152,7 @@ export const webinar = {
   faq: [
     {
       q: "When is the training?",
-      a: "Build Your First AI Income Stream is live on Sunday, October 4 at 7:00 PM Central.",
+      a: "Build Your First AI Income Stream is live on {sessionDate} at 7:00 PM Central.",
     },
     { q: "Is the training live?", a: "Yes. This is a live online training." },
     { q: "How much does it cost?", a: "The training is currently free." },
@@ -163,13 +162,13 @@ export const webinar = {
     },
     {
       q: "What if I can’t attend this Sunday?",
-      a: "This live training is on Sunday, October 4 at 7:00 PM Central. Please plan to join live.",
+      a: "This live training is on {sessionDate} at 7:00 PM Central. Please plan to join live.",
     },
   ],
   final: {
     headline: ["You Don’t Need Every AI Opportunity.", "You Need the Right One."],
     copy: "Learn how to take the skills and experience you already have, connect them to something valuable, and begin building your first AI-powered income stream.",
-    display: ["Live Sunday, October 4", "7:00 PM Central"],
+    display: ["Live This Sunday", "7:00 PM Central"],
   },
   confirm: {
     headline: "You’re Registered.",
