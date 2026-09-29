@@ -229,25 +229,25 @@ function messageFor(
       };
     case "one_hour":
       return {
-        subject: "We start in 1 hour",
+        subject: `${webinarName} starts in 1 hour`,
         paragraphs: [
           `Hi ${firstName},`,
-          "We begin in one hour.",
-          "Open your Zoom link now and plan to join 5–10 minutes early so you are settled before we start. Bring a notebook and the one problem you want AI to help you solve.",
+          `${webinarName} begins in one hour at 7:00 PM Central Time.`,
+          "Your Zoom link is below. Open it now and plan to join 5–10 minutes early so you are settled before we start. Bring a notebook and the one problem you want AI to help you solve.",
           "See you soon,\nRicky",
         ],
-        ctaLabel: "Join the live Zoom training",
+        ctaLabel: "Open your Zoom link",
         ctaUrl: joinUrl,
       };
     case "ten_minutes":
       return {
-        subject: "We start in 10 minutes",
+        subject: `${webinarName} starts in 10 minutes`,
         paragraphs: [
           `Hi ${firstName},`,
-          "We start in 10 minutes. Your Zoom link is below.",
+          `${webinarName} starts in 10 minutes. Your Zoom link is below—open it now and join when you are ready.`,
           "See you inside,\nRicky",
         ],
-        ctaLabel: "Join now",
+        ctaLabel: "Open your Zoom link",
         ctaUrl: joinUrl,
       };
     case "live_now":

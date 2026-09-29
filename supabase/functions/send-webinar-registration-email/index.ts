@@ -59,6 +59,132 @@ function safeHttpsUrl(value: string | undefined) {
   }
 }
 
+function calendarDate(value: string | null) {
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value.replaceAll("-", "") : null;
+}
+
+function centralDateTime(value: string | null, hour: number) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  const desiredAsUtc = Date.UTC(year, month - 1, day, hour, 0, 0);
+  let timestamp = desiredAsUtc;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/Chicago",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hourCycle: "h23",
+      })
+        .formatToParts(new Date(timestamp))
+        .map((part) => [part.type, part.value]),
+    );
+    const localAsUtc = Date.UTC(
+      Number(parts.year),
+      Number(parts.month) - 1,
+      Number(parts.day),
+      Number(parts.hour),
+      Number(parts.minute),
+      Number(parts.second),
+    );
+    timestamp += desiredAsUtc - localAsUtc;
+  }
+
+  return new Date(timestamp);
+}
+
+function calendarLinks(params: {
+  sessionDate: string | null;
+  webinarName: string;
+  joinUrl: string;
+}) {
+  const date = calendarDate(params.sessionDate);
+  const startDate = centralDateTime(params.sessionDate, 19);
+  const endDate = centralDateTime(params.sessionDate, 20);
+  if (!date || !startDate || !endDate) return null;
+
+  const compactUtc = (value: Date) =>
+    value
+      .toISOString()
+      .replace(/[-:]/g, "")
+      .replace(/\.\d{3}Z$/, "Z");
+  const details = `${params.webinarName}\n\nJoin Zoom: ${params.joinUrl}`;
+  const google = new URL("https://calendar.google.com/calendar/render");
+  google.search = new URLSearchParams({
+    action: "TEMPLATE",
+    text: params.webinarName,
+    dates: `${compactUtc(startDate)}/${compactUtc(endDate)}`,
+    ctz: "America/Chicago",
+    details,
+    location: "Zoom",
+  }).toString();
+
+  const outlook = new URL("https://outlook.office.com/calendar/0/deeplink/compose");
+  outlook.search = new URLSearchParams({
+    subject: params.webinarName,
+    startdt: startDate.toISOString(),
+    enddt: endDate.toISOString(),
+    body: details,
+    location: "Zoom",
+  }).toString();
+
+  return { google: google.toString(), outlook: outlook.toString() };
+}
+
+function calendarInvitation(params: {
+  registrationId: string;
+  sessionDate: string | null;
+  webinarName: string;
+  joinUrl: string;
+}) {
+  const date = calendarDate(params.sessionDate);
+  if (!date) return null;
+
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}Z$/, "Z");
+  const escapeIcsText = (value: string) =>
+    value
+      .replaceAll("\\", "\\\\")
+      .replaceAll(";", "\\;")
+      .replaceAll(",", "\\,")
+      .replaceAll("\n", "\\n");
+  const description = escapeIcsText(
+    `${params.webinarName}\n\nJoin Zoom: ${params.joinUrl}\n\nYour Zoom link is included in this calendar event.`,
+  );
+
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "CALSCALE:GREGORIAN",
+    "METHOD:REQUEST",
+    "PRODID:-//Vektiss//AI Income Training//EN",
+    "BEGIN:VEVENT",
+    `UID:${params.registrationId}@vektiss.com`,
+    `DTSTAMP:${timestamp}`,
+    `DTSTART;TZID=America/Chicago:${date}T190000`,
+    `DTEND;TZID=America/Chicago:${date}T200000`,
+    `SUMMARY:${escapeIcsText(params.webinarName)}`,
+    "LOCATION:Zoom",
+    `DESCRIPTION:${description}`,
+    `URL:${params.joinUrl}`,
+    "BEGIN:VALARM",
+    "TRIGGER:-PT10M",
+    "ACTION:DISPLAY",
+    `DESCRIPTION:${escapeIcsText(params.webinarName)} starts in 10 minutes.`,
+    "END:VALARM",
+    "END:VEVENT",
+    "END:VCALENDAR",
+    "",
+  ].join("\r\n");
+}
+
 function escapeHtml(value: string) {
   return value.replace(/[&<>'"]/g, (character) => {
     const entities: Record<string, string> = {
@@ -98,6 +224,7 @@ function sessionDateLabel(value: string | null) {
 }
 
 function emailBody(params: {
+  registrationId: string;
   firstName: string;
   webinarName: string;
   sessionDate: string | null;
@@ -115,6 +242,24 @@ function emailBody(params: {
   );
   const joinUrl = escapeHtml(params.joinUrl);
   const unsubscribeUrl = escapeHtml(params.unsubscribeUrl);
+  const calendar = calendarLinks({
+    sessionDate: params.sessionDate,
+    webinarName: params.webinarName,
+    joinUrl: params.joinUrl,
+  });
+  const invitation = calendarInvitation({
+    registrationId: params.registrationId,
+    sessionDate: params.sessionDate,
+    webinarName: params.webinarName,
+    joinUrl: params.joinUrl,
+  });
+  const calendarSection = calendar
+    ? `<div style="margin:0 0 24px;padding:18px 20px;border:1px solid #cde2f7;border-radius:12px;background:#f8fbff">
+                <p style="margin:0 0 7px;color:#182033;font-size:16px;font-weight:700">Add this event to your calendar now.</p>
+                <p style="margin:0 0 14px;color:#5d6472;font-size:14px;line-height:1.6">Use a calendar button below, or open the attached invitation and choose <strong>Accept</strong> or <strong>Add to calendar</strong>. The Zoom link is included in the event.</p>
+                <table role="presentation" cellspacing="0" cellpadding="0"><tr><td style="border-radius:8px;background:#1674c4"><a href="${escapeHtml(calendar.google)}" style="display:inline-block;padding:11px 14px;color:#ffffff;font-size:14px;font-weight:700;line-height:1;text-decoration:none">Add to Google Calendar</a></td><td width="10">&nbsp;</td><td style="border-radius:8px;background:#eef4fb"><a href="${escapeHtml(calendar.outlook)}" style="display:inline-block;padding:11px 14px;color:#0f5f9e;font-size:14px;font-weight:700;line-height:1;text-decoration:none">Add to Outlook</a></td></tr></table>
+              </div>`
+    : "";
   const mailingAddress = escapeHtml(Deno.env.get("BUSINESS_MAILING_ADDRESS")?.trim() ?? "");
   const privacyUrl = safeHttpsUrl(Deno.env.get("PRIVACY_POLICY_URL"));
   const footerLines = [
@@ -135,14 +280,15 @@ function emailBody(params: {
           <tr><td style="background:#0f1f3d;padding:28px 32px"><p style="margin:0;color:#9fd4ff;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">AI Income Training</p></td></tr>
           <tr><td style="padding:36px 32px">
             <h1 style="margin:0 0 16px;font-size:28px;line-height:1.2;color:#182033">${firstName}, you’re registered.</h1>
-            <p style="margin:0 0 24px;color:#5d6472;font-size:16px;line-height:1.6">Your seat is confirmed for Ricky Rose’s live online training.</p>
+            <p style="margin:0 0 24px;color:#5d6472;font-size:16px;line-height:1.6">Your seat is confirmed for <strong style="color:#182033">${webinarName}</strong>.</p>
             <p style="margin:0 0 18px;color:#343b4a;font-size:16px;line-height:1.7">This is the email address we’ll use for your Zoom link, reminders, and important training updates.</p>
             <p style="margin:0 0 24px;color:#343b4a;font-size:16px;line-height:1.7">To make sure we land in your inbox, hit reply and send: <strong>I’M IN</strong>.</p>
             <div style="margin:0 0 24px;padding:20px;border:1px solid #cde2f7;border-radius:12px;background:#f3f9ff">
-              <p style="margin:0;color:#0f5f9e;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase">Your live training</p>
+              <p style="margin:0;color:#0f5f9e;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase">Your webinar</p>
               <p style="margin:8px 0 0;color:#182033;font-size:22px;font-weight:700">${webinarName}</p>
-              <p style="margin:16px 0 0;color:#343b4a;font-size:15px;line-height:1.6"><strong>${sessionDate}</strong><br>${sessionTime} ${timezone}<br>Live on Zoom</p>
+              <p style="margin:16px 0 0;color:#343b4a;font-size:15px;line-height:1.6"><strong>${sessionDate}</strong><br>${sessionTime} ${timezone}<br>Live on Zoom · reserve 7:00–8:00 PM</p>
             </div>
+            ${calendarSection}
             <p style="margin:0 0 24px;color:#343b4a;font-size:16px;line-height:1.7">Come ready to think differently about what you already know, what AI makes possible, and how you can begin creating another source of income.</p>
             <table role="presentation" cellspacing="0" cellpadding="0"><tr><td style="border-radius:10px;background:#1674c4"><a href="${joinUrl}" style="display:inline-block;padding:14px 22px;color:#ffffff;font-size:16px;font-weight:700;line-height:1;text-decoration:none">Join the live Zoom training</a></td></tr></table>
             <p style="margin:24px 0 0;color:#5d6472;font-size:13px;line-height:1.6">Save this email so your Zoom link is ready when the training begins.</p>
@@ -157,7 +303,7 @@ function emailBody(params: {
   const text = [
     `Hi ${params.firstName.trim() || "there"},`,
     "",
-    "You’re registered for Ricky Rose’s live online training.",
+    `You’re registered for ${params.webinarName}.`,
     "",
     "This is the email address we’ll use for your Zoom link, reminders, and important training updates.",
     "",
@@ -167,6 +313,10 @@ function emailBody(params: {
     `${sessionDateLabel(params.sessionDate)} at ${params.sessionTime ?? "7:00 PM"} ${params.timezone === "America/Chicago" ? "Central Time" : (params.timezone ?? "Central Time")}`,
     "Live on Zoom",
     "",
+    "Add this event to your calendar now. Open the attached calendar invitation and choose Accept or Add to calendar; the Zoom link is included in the event.",
+    ...(calendar
+      ? [`Google Calendar: ${calendar.google}`, `Outlook Calendar: ${calendar.outlook}`, ""]
+      : []),
     "Come ready to think differently about what you already know, what AI makes possible, and how you can begin creating another source of income.",
     "",
     `Join the live Zoom training: ${params.joinUrl}`,
@@ -179,7 +329,7 @@ function emailBody(params: {
     `Unsubscribe: ${params.unsubscribeUrl}`,
   ].join("\n");
 
-  return { html, text, sessionDate: sessionDateLabel(params.sessionDate) };
+  return { html, text, sessionDate: sessionDateLabel(params.sessionDate), invitation };
 }
 
 Deno.serve(async (request) => {
@@ -277,6 +427,7 @@ Deno.serve(async (request) => {
     }
 
     const message = emailBody({
+      registrationId: registration.id,
       firstName: registration.first_name ?? "",
       webinarName: registration.webinar_name ?? "Build Your First AI Income Stream",
       sessionDate: registration.session_date,
@@ -299,6 +450,16 @@ Deno.serve(async (request) => {
         subject: `You’re registered: ${registration.webinar_name ?? "Build Your First AI Income Stream"} — ${message.sessionDate}`,
         html: message.html,
         text: message.text,
+        ...(message.invitation
+          ? {
+              attachments: [
+                {
+                  filename: "Build-Your-First-AI-Income-Stream.ics",
+                  content: btoa(message.invitation),
+                },
+              ],
+            }
+          : {}),
         tags: [
           { name: "funnel", value: "ai_income_webinar" },
           { name: "registration_id", value: registration.id },
