@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, Calendar, Check, Clock, Globe, Loader2, Lock, X } from "lucide-react";
 import { webinar } from "@/content/webinar";
 import type { RegistrationInput } from "@/lib/webinar-api";
@@ -64,7 +64,55 @@ export function ScheduleChips() {
   );
 }
 
-export function Hero({ onCta, sessionLabel }: { onCta: () => void; sessionLabel: string }) {
+function CountdownClock() {
+  const [remaining, setRemaining] = useState<number | null>(null);
+
+  useEffect(() => {
+    const target = new Date(webinar.countdown.target).getTime();
+    const update = () => setRemaining(Math.max(0, target - Date.now()));
+    update();
+    const interval = window.setInterval(update, 1000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  if (remaining === 0) {
+    return (
+      <div className="mt-7 rounded-2xl border border-primary/40 bg-primary/10 px-5 py-4 text-sm font-semibold text-primary">
+        The live training is underway.
+      </div>
+    );
+  }
+
+  const totalSeconds = Math.floor((remaining ?? 0) / 1000);
+  const values = [
+    { label: "Days", value: Math.floor(totalSeconds / 86_400) },
+    { label: "Hours", value: Math.floor((totalSeconds % 86_400) / 3_600) },
+    { label: "Minutes", value: Math.floor((totalSeconds % 3_600) / 60) },
+    { label: "Seconds", value: totalSeconds % 60 },
+  ];
+
+  return (
+    <div className="mt-7 max-w-xl" aria-live="polite">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+        {webinar.countdown.label}
+      </p>
+      <div className="mt-3 grid grid-cols-4 gap-2 sm:gap-3">
+        {values.map(({ label, value }) => (
+          <div key={label} className="panel rounded-xl px-2 py-3 text-center sm:px-4">
+            <p className="font-display text-2xl font-bold tabular-nums sm:text-3xl">
+              {remaining === null ? "--" : String(value).padStart(2, "0")}
+            </p>
+            <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-xs">
+              {label}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function Hero({ onCta }: { onCta: () => void }) {
   const h = webinar.hero;
   return (
     <section className="relative overflow-hidden">
@@ -81,9 +129,7 @@ export function Hero({ onCta, sessionLabel }: { onCta: () => void; sessionLabel:
         </p>
         <Cta onClick={onCta} className="mt-9" />
         <p className="mt-3 text-sm font-medium">{h.under}</p>
-        {sessionLabel && (
-          <p className="mt-1 text-xs text-muted-foreground">Next session: {sessionLabel}</p>
-        )}
+        <CountdownClock />
         <p className="mt-10 max-w-xl border-l-2 border-primary/60 pl-4 text-[15px] leading-relaxed text-muted-foreground sm:text-base">
           {h.support}
         </p>
@@ -292,12 +338,10 @@ export function RegisterBlock({
   onSubmit,
   submitting,
   error,
-  sessionLabel,
 }: {
   onSubmit: (v: RegistrationInput) => void;
   submitting: boolean;
   error: string | null;
-  sessionLabel: string;
 }) {
   const r = webinar.register;
   const [v, setV] = useState<RegistrationInput>({
@@ -346,11 +390,6 @@ export function RegisterBlock({
           <p className="mt-6 text-[15px] leading-relaxed text-muted-foreground sm:text-base">
             {r.copy}
           </p>
-          {sessionLabel && (
-            <p className="mt-2 text-sm font-medium text-primary">
-              Upcoming session: {sessionLabel}
-            </p>
-          )}
         </div>
         <form
           className="panel space-y-4 rounded-2xl p-6 sm:p-8"

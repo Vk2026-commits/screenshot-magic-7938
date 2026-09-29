@@ -62,11 +62,13 @@ function Registered() {
           </p>
 
           <div className="panel mt-10 rounded-2xl p-6 text-left sm:p-8">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">Your seat</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">
+              Your seat
+            </p>
             <h2 className="mt-2 text-2xl font-bold">{webinar.name}</h2>
             <div className="mt-5 space-y-3">
               {[
-                { I: Calendar, t: saved?.sessionLabel ?? "Sunday" },
+                { I: Calendar, t: saved?.sessionLabel ?? webinar.schedule.day },
                 { I: Clock, t: "7:00 PM Central" },
                 { I: Globe, t: "Live Online" },
               ].map(({ I, t }) => (
@@ -78,7 +80,9 @@ function Registered() {
           </div>
 
           <p className="mt-8 text-[15px] leading-relaxed sm:text-base">{c.copy1}</p>
-          <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground sm:text-base">{c.copy2}</p>
+          <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground sm:text-base">
+            {c.copy2}
+          </p>
 
           {saved?.planUrl && (
             <a
@@ -88,7 +92,10 @@ function Registered() {
               {c.planCta} <ArrowRight className="size-4" />
             </a>
           )}
-          <Link to="/" className="mt-8 block text-sm text-muted-foreground underline-offset-4 hover:underline">
+          <Link
+            to="/"
+            className="mt-8 block text-sm text-muted-foreground underline-offset-4 hover:underline"
+          >
             Back to training page
           </Link>
         </div>

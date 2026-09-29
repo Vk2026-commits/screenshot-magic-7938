@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 import { webinar } from "@/content/webinar";
 import { captureAttribution } from "@/lib/attribution";
-import { captureFunnelIds, registerForWebinar, upcomingSession, type RegistrationInput } from "@/lib/webinar-api";
+import { captureFunnelIds, registerForWebinar, type RegistrationInput } from "@/lib/webinar-api";
 import { SiteHeader } from "@/components/funnel/SiteHeader";
 import {
   Beliefs,
@@ -20,9 +20,9 @@ import {
   StartOver,
 } from "@/components/webinar/Sections";
 
-const TITLE = "Build Your First AI Income Stream — Free Live Training Every Sunday";
+const TITLE = "Build Your First AI Income Stream — Free Live Training, Sunday October 4";
 const DESCRIPTION =
-  "Free live training every Sunday at 7 PM Central. Learn how to use the skills you already have to create additional income with AI — no coding, no quitting your job.";
+  "Free live training on Sunday, October 4 at 7 PM Central. Learn how to use the skills you already have to create additional income with AI — no coding, no quitting your job.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -44,14 +44,12 @@ export const Route = createFileRoute("/")({
 
 function WebinarPage() {
   const navigate = useNavigate();
-  const [sessionLabel, setSessionLabel] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     captureAttribution();
     captureFunnelIds();
-    setSessionLabel(upcomingSession().label);
   }, []);
 
   const toRegister = () => {
@@ -78,12 +76,15 @@ function WebinarPage() {
       <SiteHeader
         label="AI Income Training"
         action={
-          <button onClick={toRegister} className="rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground sm:text-sm">
+          <button
+            onClick={toRegister}
+            className="rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground sm:text-sm"
+          >
             Save My Seat
           </button>
         }
       />
-      <Hero onCta={toRegister} sessionLabel={sessionLabel} />
+      <Hero onCta={toRegister} />
       <Opportunity />
       <Learn />
       <StartOver />
@@ -91,7 +92,7 @@ function WebinarPage() {
       <ForYou />
       <Stages />
       <PathFinderBridge onCta={toRegister} />
-      <RegisterBlock onSubmit={submit} submitting={submitting} error={error} sessionLabel={sessionLabel} />
+      <RegisterBlock onSubmit={submit} submitting={submitting} error={error} />
       <Beliefs />
       <Faq />
       <FinalCta onCta={toRegister} />
