@@ -15,12 +15,17 @@ type WebinarRegistration = {
   sms_opt_in: boolean | null;
 };
 
-const defaultOrigin = "https://screenshot-magic-7938.lovable.app";
-const defaultOrigins = [defaultOrigin, "https://income.vektiss.com"];
-const trustedOrigins = (Deno.env.get("ALLOWED_ORIGINS") ?? defaultOrigins.join(","))
+const defaultOrigin = "https://webinar.vektiss.com";
+const defaultOrigins = [
+  defaultOrigin,
+  "https://screenshot-magic-7938.lovable.app",
+  "https://income.vektiss.com",
+];
+const configuredOrigins = (Deno.env.get("ALLOWED_ORIGINS") ?? "")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+const trustedOrigins = [...new Set([...defaultOrigins, ...configuredOrigins])];
 
 function corsHeaders(origin: string | null) {
   const allowOrigin =
