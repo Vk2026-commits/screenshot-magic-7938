@@ -29,7 +29,7 @@ function chicagoParts(date: Date) {
 
 /** Converts a non-ambiguous Central Time date/time into a UTC instant, including DST. */
 function chicagoDateTime(date: string, hour: number, minute: number) {
-  const [year, month, day] = date.split("-").map(Number);
+  const [year, month, day] = date.split("-").map(Number) as [number, number, number];
   const desiredAsUtc = Date.UTC(year, month - 1, day, hour, minute, 0);
   let timestamp = desiredAsUtc;
 

@@ -77,12 +77,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "AI Income Path Finder" },
+      { title: "AI Income Training" },
       {
         name: "description",
         content:
-          "Discover the AI income path that fits your goal, skills and available time.",
+          "Free live training this Sunday at 7 PM Central. Learn how to use the skills you already have to create additional income with AI — no coding, no quitting your job.",
       },
+      { property: "og:site_name", content: "AI Income Training" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
