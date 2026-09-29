@@ -433,9 +433,10 @@ export function RegisterBlock({
               onChange={(e) => setV((s) => ({ ...s, sms_opt_in: e.target.checked }))}
             />
             <span>
-              Yes, send me automated webinar reminders and Vektiss updates by text. Msg &amp; data
-              rates may apply. Up to 7 messages per webinar registration, plus replies. Reply STOP
-              to opt out or HELP for help. Consent is not required to register or purchase. See the{" "}
+              By checking this box, I agree to receive automated marketing and webinar reminder text
+              messages from Vektiss at the mobile number provided. Msg &amp; data rates may apply.
+              Up to 7 messages per webinar registration, plus replies. Reply STOP to opt out or HELP
+              for help. Consent is not required to register or purchase. See the{" "}
               <a
                 className="text-primary underline underline-offset-2"
                 href="https://vektiss.com/terms"
