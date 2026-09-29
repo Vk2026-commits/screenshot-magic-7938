@@ -12,9 +12,10 @@ const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9
 type Search = { token?: string };
 
 export const Route = createFileRoute("/unsubscribe")({
-  validateSearch: (search: Record<string, unknown>): Search => ({
-    token: typeof search.token === "string" ? search.token : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): Search => {
+    const token = search["token"];
+    return typeof token === "string" ? { token } : {};
+  },
   head: () => ({
     meta: [
       { title: TITLE },

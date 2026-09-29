@@ -530,7 +530,7 @@ export function FinalCta({ onCta, sessionLabel }: { onCta: () => void; sessionLa
           {f.copy}
         </p>
         <p className="mt-8 font-display text-lg font-bold uppercase tracking-[0.18em]">
-          {f.display[0].replace("This Sunday", sessionLabel)}{" "}
+          {f.display[0]!.replace("This Sunday", sessionLabel)}{" "}
           <span className="text-primary">•</span> {f.display[1]}
         </p>
         <div className="mt-8 flex justify-center">
