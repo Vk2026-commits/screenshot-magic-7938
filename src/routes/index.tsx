@@ -19,7 +19,6 @@ import {
   Hero,
   Learn,
   Opportunity,
-  PathFinderBridge,
   RegisterBlock,
   Stages,
   StartOver,
@@ -110,7 +109,6 @@ function WebinarPage() {
       <ForYou />
       <Stages />
       <Trainer />
-      <PathFinderBridge onCta={toRegister} sessionLabel={session.label} />
       <RegisterBlock
         onSubmit={submit}
         submitting={submitting}

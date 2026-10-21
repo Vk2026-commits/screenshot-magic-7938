@@ -1,7 +1,7 @@
 import logoMark from "@/assets/logo-mark.png.asset.json";
 
 export function SiteHeader({
-  label = "AI Income Path Finder",
+  label = "AI Income Training",
   action,
 }: {
   label?: string;
