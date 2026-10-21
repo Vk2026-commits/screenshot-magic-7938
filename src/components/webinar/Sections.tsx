@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, Calendar, Check, Clock, Globe, Loader2, Lock, X } from "lucide-react";
+import rickyPortrait from "@/assets/ricky-rose-portrait.png.asset.json";
 import { webinar } from "@/content/webinar";
 import type { RegistrationInput } from "@/lib/webinar-api";
 import {

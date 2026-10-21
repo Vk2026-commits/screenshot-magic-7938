@@ -132,6 +132,13 @@ export const webinar = {
     },
     cta: "Reserve My Seat for This Sunday",
   },
+  trainer: {
+    eyebrow: "Meet The Trainer",
+    headline: "Meet Your Trainer",
+    name: "Ricky Rose",
+    role: "Co-Founder of Vektiss",
+    bio: "Ricky has helped business owners across various industries create content that has generated millions of views. Today, his mission is to help people use their existing skills, knowledge, and experience to create new opportunities through AI and technology, moving them closer to the life they desire.",
+  },
   register: {
     eyebrow: "Live Online Training",
     headline: "Join Us This Sunday.",
