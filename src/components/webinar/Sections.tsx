@@ -338,38 +338,6 @@ export function Trainer() {
   );
 }
 
-export function PathFinderBridge({
-  onCta,
-  sessionLabel,
-}: {
-  onCta: () => void;
-  sessionLabel: string;
-}) {
-  const p = webinar.pathFinder;
-  return (
-    <Section className="max-w-3xl">
-      <div className="panel glow-ring rounded-3xl p-6 sm:p-10">
-        <h2 className="text-2xl font-bold leading-tight sm:text-4xl">{p.headline}</h2>
-        <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-          {p.body}
-        </p>
-        <p className="mt-4 font-semibold">{p.deeper}</p>
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          {[p.q1, p.q2].map((q, i) => (
-            <div
-              key={q.quote}
-              className={`rounded-xl border p-4 ${i ? "border-primary/50 bg-primary/10" : "border-border bg-navy-deep"}`}
-            >
-              <p className="text-xs text-muted-foreground">{q.label}</p>
-              <p className="mt-2 font-display text-lg font-semibold">“{q.quote}”</p>
-            </div>
-          ))}
-        </div>
-        <Cta label={p.cta.replace("This Sunday", sessionLabel)} onClick={onCta} className="mt-8" />
-      </div>
-    </Section>
-  );
-}
 
 const field =
   "h-13 w-full rounded-xl border border-border bg-navy-deep px-4 text-base text-foreground placeholder:text-muted-foreground/60 outline-none transition-colors focus:border-primary";

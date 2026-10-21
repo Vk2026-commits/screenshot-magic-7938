@@ -121,17 +121,6 @@ export const webinar = {
       "You need to understand what stage makes sense for you now.",
     ],
   },
-  pathFinder: {
-    headline: "Already Took the AI Income Path Finder?",
-    body: "Your personalized AI Income Plan helped identify the path that may fit your current skills, available time, and income goal.",
-    deeper: "Now let’s go deeper.",
-    q1: { label: "Your assessment helps answer:", quote: "Where should I start?" },
-    q2: {
-      label: "This live training helps answer:",
-      quote: "How do I begin turning that path into real income?",
-    },
-    cta: "Reserve My Seat for This Sunday",
-  },
   trainer: {
     eyebrow: "Meet The Trainer",
     headline: "Meet Your Trainer",
