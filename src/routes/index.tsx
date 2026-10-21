@@ -23,6 +23,7 @@ import {
   RegisterBlock,
   Stages,
   StartOver,
+  Trainer,
 } from "@/components/webinar/Sections";
 
 const TITLE = "Build Your First AI Income Stream — Free Live Training This Sunday";
@@ -108,6 +109,7 @@ function WebinarPage() {
       <Framework />
       <ForYou />
       <Stages />
+      <Trainer />
       <PathFinderBridge onCta={toRegister} sessionLabel={session.label} />
       <RegisterBlock
         onSubmit={submit}

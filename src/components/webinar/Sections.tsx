@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, Calendar, Check, Clock, Globe, Loader2, Lock, X } from "lucide-react";
+import rickyPortrait from "@/assets/ricky-rose-portrait.png.asset.json";
 import { webinar } from "@/content/webinar";
 import type { RegistrationInput } from "@/lib/webinar-api";
 import {
@@ -299,6 +300,39 @@ export function Stages() {
       <div className="mt-10 text-center">
         <p className="text-lg font-semibold sm:text-xl">{s.close[0]}</p>
         <p className="mt-1 text-muted-foreground">{s.close[1]}</p>
+      </div>
+    </Section>
+  );
+}
+
+export function Trainer() {
+  const t = webinar.trainer;
+  return (
+    <Section>
+      <div className="grid items-center gap-8 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:gap-14">
+        <div className="relative mx-auto w-full max-w-sm md:max-w-none">
+          <div
+            className="pointer-events-none absolute -inset-4 rounded-[28px] opacity-25 blur-2xl"
+            style={{ background: "color-mix(in oklab, var(--primary) 45%, transparent)" }}
+          />
+          <img
+            src={rickyPortrait.url}
+            alt="Ricky Rose, Co-Founder of Vektiss"
+            loading="lazy"
+            className="relative w-full rounded-2xl border border-border object-cover"
+          />
+        </div>
+        <div className="text-center md:text-left">
+          <p className={eyebrow}>{t.eyebrow}</p>
+          <h2 className={`${h2} mt-4`}>{t.headline}</h2>
+          <p className="mt-6 font-display text-2xl font-bold">{t.name}</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary sm:text-sm">
+            {t.role}
+          </p>
+          <p className="mt-5 text-[16px] leading-relaxed text-muted-foreground sm:text-lg">
+            {t.bio}
+          </p>
+        </div>
       </div>
     </Section>
   );
